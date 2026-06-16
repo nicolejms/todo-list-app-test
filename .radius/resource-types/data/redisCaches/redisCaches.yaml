@@ -1,0 +1,29 @@
+namespace: Radius.Data
+types:
+  redisCaches:
+    description: |
+      The Radius.Data/redisCaches resource type deploys a Redis cache. This
+      type was generated on the fly because no recipe exists for it in
+      radius-project/resource-types-contrib. The accompanying Kubernetes
+      recipe provisions a Redis Deployment and Service on the target cluster.
+    apiVersions:
+      '2025-08-01-preview':
+        schema:
+          type: object
+          properties:
+            environment:
+              type: string
+              description: "(Required) The Radius Environment ID. Typically set by the rad CLI; value should be `environment`."
+            application:
+              type: string
+              description: "(Optional) The Radius Application ID. `myApplication.id` for example."
+            host:
+              type: string
+              description: "(Read-only) The host name used to connect to the cache."
+              readOnly: true
+            port:
+              type: integer
+              description: "(Read-only) The port number used to connect to the cache."
+              readOnly: true
+          required:
+            - environment

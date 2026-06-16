@@ -8,7 +8,13 @@ param dbPassword string
 
 param appImage string = 'node:22-alpine'
 
-resource app 'Radius.Core/applications@2025-08-01-preview' = {
+// The application is declared under Applications.Core because the deployment
+// engine's recipe-context builder resolves the `application` reference under
+// the Applications.Core/applications namespace. Declaring it as Radius.Core
+// caused recipes (e.g. the mysql secret) to 404 when looking up the app. The
+// single `radius` bicep extension provides both Applications.Core/* and
+// Radius.* types, so mixing them in one file is valid.
+resource app 'Applications.Core/applications@2023-10-01-preview' = {
   name: 'todo'
   properties: {
     environment: environment
@@ -39,10 +45,10 @@ resource todoApp 'Radius.Compute/containers@2025-08-01-preview' = {
         }
         env: {
           MYSQL_HOST: {
-            value: 'mysql'
+            value: mysqlDb.properties.host
           }
           MYSQL_USER: {
-            value: 'root'
+            value: 'mysqladmin'
           }
           MYSQL_PASSWORD: {
             value: dbPassword
@@ -51,10 +57,10 @@ resource todoApp 'Radius.Compute/containers@2025-08-01-preview' = {
             value: 'todos'
           }
           REDIS_HOST: {
-            value: 'redis'
+            value: redisCache.properties.host
           }
           REDIS_PORT: {
-            value: '6379'
+            value: string(redisCache.properties.port)
           }
         }
       }
