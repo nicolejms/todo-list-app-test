@@ -208,16 +208,20 @@ jobs:
 
       - name: Register custom resource types and recipes (post-reload)
         run: |
-          # Custom (repo-local) resource types must be registered AFTER the
-          # control-plane reload. The reload re-seeds the built-in default
-          # registrations (Radius.Compute/*, Radius.Data/mySqlDatabases,
-          # Radius.Security/secrets) into each provider's "global" location,
-          # which OVERWRITES any non-built-in types registered earlier. Since
-          # UCP resolves resource types by reading the location live, registering
-          # here (after the re-seed) makes the custom types routable without a
-          # further restart. Layout:
+          # Repo-local custom resource types (generated on the fly when a type
+          # has no recipe in resource-types-contrib, e.g. redisCaches) MUST be
+          # registered AFTER the control-plane reload. The reload re-seeds the
+          # built-in default registrations (Radius.Compute/*,
+          # Radius.Data/mySqlDatabases, Radius.Security/secrets) into each
+          # provider's "global" location, OVERWRITING any non-built-in types
+          # registered earlier — so registering before the reload would be lost
+          # on every (re)run and break the deploy. UCP resolves resource types by
+          # reading the location live, so registering here (after the re-seed)
+          # makes them routable without another restart. Layout mirrors contrib:
           # .radius/resource-types/<category>/<typeName>/<typeName>.yaml with
-          # recipes under <typeName>/recipes/kubernetes/{terraform,bicep}.
+          # recipes under <typeName>/recipes/kubernetes/{terraform,bicep}. The
+          # recipe is fetched by the deployment engine over git from this repo,
+          # so the repo must be public (same constraint as contrib).
           for type_dir in "$GITHUB_WORKSPACE"/.radius/resource-types/*/*/; do
             [ -d "$type_dir" ] || continue
             type_name=$(basename "$type_dir")
@@ -248,7 +252,7 @@ jobs:
       - name: Build Bicep extensions for custom resource types
         run: |
           # Custom resource types (e.g. redisCaches) are not part of the
-          # published `radius` Bicep extension, so Bicep would route them to the
+          # published radius Bicep extension, so Bicep would route them to the
           # Azure ARM provider and fail. Publish a local Bicep extension from
           # each repo-local type manifest so app.bicep can resolve the type and
           # target the Radius control plane. bicepconfig.json references these
