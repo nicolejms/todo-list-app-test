@@ -29,6 +29,14 @@ async function init() {
         waitForDns: true,
     });
 
+    // Azure Database for MySQL Flexible Server enforces TLS
+    // (require_secure_transport=ON), so connect over SSL when talking to an
+    // Azure MySQL host (or when MYSQL_SSL is set). rejectUnauthorized is left
+    // off to avoid bundling the Azure root CA in the image.
+    const sslEnabled =
+        String(process.env.MYSQL_SSL || '').toLowerCase() === 'true' ||
+        /\.mysql\.database\.azure\.com$/i.test(String(host || ''));
+
     pool = mysql.createPool({
         connectionLimit: 5,
         host,
@@ -36,6 +44,9 @@ async function init() {
         password,
         database,
         charset: 'utf8mb4',
+        ...(sslEnabled
+            ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: false } }
+            : {}),
     });
 
     return new Promise((acc, rej) => {
