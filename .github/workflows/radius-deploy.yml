@@ -136,12 +136,7 @@ jobs:
                 --environment "${{ env.RADIUS_ENV }}" || true
             fi
           done
-          # Database: register the mySqlDatabases resource type, then its
-          # Azure-managed recipe (azure/terraform instead of kubernetes).
-          MYSQL_YAML="/tmp/rtc/Data/mySqlDatabases/mySqlDatabases.yaml"
-          if [ -f "$MYSQL_YAML" ]; then
-            rad resource-type create -f "$MYSQL_YAML" || true
-          fi
+          # Database: managed Azure MySQL Flexible Server (azure/terraform recipe)
           rad recipe register default \
             --resource-type "Radius.Data/mySqlDatabases" \
             --template-kind terraform \
