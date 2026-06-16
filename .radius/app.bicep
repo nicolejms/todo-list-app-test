@@ -31,7 +31,7 @@ resource todoApp 'Radius.Compute/containers@2025-08-01-preview' = {
       }
       env: {
         MYSQL_HOST: mysqlDb.name
-        MYSQL_USER: 'root'
+        MYSQL_USER: 'mysqladmin'
         MYSQL_PASSWORD: mysqlPassword
         MYSQL_DB: 'todos'
         REDIS_HOST: redisCache.name
@@ -49,12 +49,25 @@ resource todoApp 'Radius.Compute/containers@2025-08-01-preview' = {
   }
 }
 
+resource mysqlSecret 'Radius.Security/secrets@2025-05-01-preview' = {
+  name: 'mysql-secret'
+  properties: {
+    application: application
+    environment: environment
+    data: {
+      USERNAME: 'mysqladmin'
+      PASSWORD: mysqlPassword
+    }
+  }
+}
+
 resource mysqlDb 'Radius.Data/mySqlDatabases@2025-08-01-preview' = {
   name: 'todo-mysql'
   properties: {
     application: application
     environment: environment
     database: 'todos'
+    secretName: mysqlSecret.name
   }
 }
 
@@ -74,16 +87,5 @@ resource appRoute 'Radius.Compute/routes@2025-05-01-preview' = {
     hostname: 'todo-app.example.com'
     port: 3000
     container: todoApp.id
-  }
-}
-
-resource mysqlSecret 'Radius.Security/secrets@2025-05-01-preview' = {
-  name: 'mysql-secret'
-  properties: {
-    application: application
-    environment: environment
-    data: {
-      password: mysqlPassword
-    }
   }
 }
