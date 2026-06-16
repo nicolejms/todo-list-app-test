@@ -185,6 +185,24 @@ jobs:
           kubectl rollout restart deployment -n radius-system
           kubectl rollout status deployment -n radius-system --timeout=240s
 
+      - name: Build Bicep extensions for custom resource types
+        run: |
+          # Custom resource types (e.g. redisCaches) are not part of the
+          # published `radius` Bicep extension, so Bicep would route them to the
+          # Azure ARM provider and fail. Publish a local Bicep extension from
+          # each repo-local type manifest so app.bicep can resolve the type and
+          # target the Radius control plane. bicepconfig.json references these
+          # as ./bicep-extensions/<typeName>.tgz (relative to .radius/).
+          mkdir -p .radius/bicep-extensions
+          for type_dir in "$GITHUB_WORKSPACE"/.radius/resource-types/*/*/; do
+            [ -d "$type_dir" ] || continue
+            type_name=$(basename "$type_dir")
+            yaml="${type_dir}${type_name}.yaml"
+            [ -f "$yaml" ] || continue
+            echo "Publishing Bicep extension for $type_name"
+            rad bicep publish-extension -f "$yaml" --target ".radius/bicep-extensions/${type_name}.tgz" --force
+          done
+
       - name: Deploy Application
         run: |
           set -uo pipefail
