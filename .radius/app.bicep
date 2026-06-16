@@ -12,7 +12,7 @@ param application string
 @secure()
 param dbPassword string
 
-param appImage string = 'ghcr.io/nicolejms/todo-list-app-gh:latest'
+param appImage string = 'ghcr.io/nicolejms/todo-list-app-test:latest'
 
 resource todoApp 'Radius.Compute/containers@2025-08-01-preview' = {
   name: 'todo-app'

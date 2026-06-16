@@ -26,6 +26,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Build and push application image
+        run: |
+          set -euo pipefail
+          # Build the app container image from the repo Dockerfile and push it to
+          # GHCR so the Radius container runs the REAL application instead of a
+          # base-image placeholder (a bare base image has no app code or start
+          # command and crash-loops, hanging the deploy). The package is private;
+          # a pull secret is injected into the deploy namespace below so the
+          # target cluster can pull it. Requires an environment secret GHCR_PAT
+          # (a PAT with write:packages). Skipped when the repo has no Dockerfile.
+          if [ ! -f Dockerfile ]; then
+            echo "No Dockerfile found; skipping image build (app.bicep default image will be used)"
+            exit 0
+          fi
+          if [ -z "${{ secrets.GHCR_PAT }}" ]; then
+            echo "❌ GHCR_PAT secret is not set. Add a PAT with write:packages as an environment secret named GHCR_PAT." >&2
+            exit 1
+          fi
+          IMAGE_BASE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          IMAGE="${IMAGE_BASE}:${{ github.sha }}"
+          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build -t "$IMAGE" -t "${IMAGE_BASE}:latest" .
+          docker push "$IMAGE"
+          docker push "${IMAGE_BASE}:latest"
+          echo "APP_IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "✅ Pushed $IMAGE"
+
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -62,7 +89,14 @@ jobs:
 
       - name: Install Radius CLI
         run: |
-          wget -q "https://raw.githubusercontent.com/radius-project/radius/main/deploy/install.sh" -O - | /bin/bash
+          for attempt in 1 2 3; do
+            if wget -q "https://raw.githubusercontent.com/radius-project/radius/main/deploy/install.sh" -O /tmp/rad-install.sh && /bin/bash /tmp/rad-install.sh; then
+              break
+            fi
+            echo "Radius CLI install attempt $attempt failed; retrying..."
+            sleep 10
+          done
+          rad version || { echo "❌ Radius CLI install failed"; exit 1; }
 
       - name: Install Radius Control Plane on k3d
         run: |
@@ -102,6 +136,24 @@ jobs:
             kubectl --kubeconfig "$TARGET_KUBECONFIG" create namespace "$ns" \
               --dry-run=client -o yaml | kubectl --kubeconfig "$TARGET_KUBECONFIG" apply -f -
           done
+          # If we built a private app image, give the deploy namespace's default
+          # service account a GHCR pull secret. Radius schedules container pods
+          # under the "default" SA with no imagePullSecrets, so without this the
+          # private image can't be pulled on the target cluster.
+          if [ -n "${APP_IMAGE:-}" ]; then
+            NS="${{ env.RADIUS_ENV }}-${{ env.RADIUS_ENV }}"
+            kubectl --kubeconfig "$TARGET_KUBECONFIG" -n "$NS" create secret docker-registry ghcr-pull \
+              --docker-server=ghcr.io \
+              --docker-username="${{ github.actor }}" \
+              --docker-password="${{ secrets.GHCR_PAT }}" \
+              --dry-run=client -o yaml | kubectl --kubeconfig "$TARGET_KUBECONFIG" apply -f -
+            for i in $(seq 1 30); do
+              kubectl --kubeconfig "$TARGET_KUBECONFIG" -n "$NS" get serviceaccount default >/dev/null 2>&1 && break
+              sleep 2
+            done
+            kubectl --kubeconfig "$TARGET_KUBECONFIG" -n "$NS" patch serviceaccount default \
+              -p '{"imagePullSecrets":[{"name":"ghcr-pull"}]}'
+          fi
 
       - name: Register resource types and recipes
         run: |
@@ -311,7 +363,9 @@ jobs:
           ) &
           PUB_PID=$!
 
-          rad deploy "$APP" --environment "${{ env.RADIUS_ENV }}" --application "${{ env.RADIUS_ENV }}" -p dbPassword="$DB_PASSWORD" 2>&1 | tee -a "$LOG"
+          IMG_ARG=""
+          [ -n "${APP_IMAGE:-}" ] && IMG_ARG="-p appImage=$APP_IMAGE"
+          rad deploy "$APP" --environment "${{ env.RADIUS_ENV }}" --application "${{ env.RADIUS_ENV }}" -p dbPassword="$DB_PASSWORD" $IMG_ARG 2>&1 | tee -a "$LOG"
           RAD_EXIT=${PIPESTATUS[0]}
 
           kill "$PUB_PID" 2>/dev/null || true
