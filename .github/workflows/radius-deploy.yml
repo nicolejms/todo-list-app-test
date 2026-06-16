@@ -136,37 +136,6 @@ jobs:
                 --environment "${{ env.RADIUS_ENV }}" || true
             fi
           done
-          # Repo-local custom resource types, generated on the fly when a type
-          # referenced by the app has no recipe in resource-types-contrib (e.g.
-          # redisCaches). Layout mirrors contrib:
-          # .radius/resource-types/<category>/<typeName>/<typeName>.yaml with
-          # recipes under <typeName>/recipes/kubernetes/{terraform,bicep}. The
-          # recipe is fetched by the deployment engine over git from this repo.
-          for type_dir in "$GITHUB_WORKSPACE"/.radius/resource-types/*/*/; do
-            [ -d "$type_dir" ] || continue
-            type_name=$(basename "$type_dir")
-            yaml="${type_dir}${type_name}.yaml"
-            [ -f "$yaml" ] || continue
-            ns=$(grep -E '^namespace:' "$yaml" | head -1 | awk '{print $2}')
-            [ -z "$ns" ] && continue
-            echo "Registering custom $ns/$type_name from repo"
-            rad resource-type create -f "$yaml" || true
-            rel=${type_dir#$GITHUB_WORKSPACE/}
-            rel=${rel%/}
-            if [ -d "${type_dir}recipes/kubernetes/terraform" ]; then
-              rad recipe register default \
-                --resource-type "$ns/$type_name" \
-                --template-kind terraform \
-                --template-path "git::https://github.com/${{ github.repository }}.git//${rel}/recipes/kubernetes/terraform?ref=${{ github.sha }}" \
-                --environment "${{ env.RADIUS_ENV }}" || true
-            elif [ -d "${type_dir}recipes/kubernetes/bicep" ]; then
-              rad recipe register default \
-                --resource-type "$ns/$type_name" \
-                --template-kind bicep \
-                --template-path "${type_dir}recipes/kubernetes/bicep" \
-                --environment "${{ env.RADIUS_ENV }}" || true
-            fi
-          done
           # Database: managed Azure MySQL Flexible Server (azure/terraform recipe)
           rad recipe register default \
             --resource-type "Radius.Data/mySqlDatabases" \
@@ -184,6 +153,45 @@ jobs:
           # deployment engine / UCP until their pods refresh their provider cache.
           kubectl rollout restart deployment -n radius-system
           kubectl rollout status deployment -n radius-system --timeout=240s
+
+      - name: Register custom resource types and recipes (post-reload)
+        run: |
+          # Custom (repo-local) resource types must be registered AFTER the
+          # control-plane reload. The reload re-seeds the built-in default
+          # registrations (Radius.Compute/*, Radius.Data/mySqlDatabases,
+          # Radius.Security/secrets) into each provider's "global" location,
+          # which OVERWRITES any non-built-in types registered earlier. Since
+          # UCP resolves resource types by reading the location live, registering
+          # here (after the re-seed) makes the custom types routable without a
+          # further restart. Layout:
+          # .radius/resource-types/<category>/<typeName>/<typeName>.yaml with
+          # recipes under <typeName>/recipes/kubernetes/{terraform,bicep}.
+          for type_dir in "$GITHUB_WORKSPACE"/.radius/resource-types/*/*/; do
+            [ -d "$type_dir" ] || continue
+            type_name=$(basename "$type_dir")
+            yaml="${type_dir}${type_name}.yaml"
+            [ -f "$yaml" ] || continue
+            ns=$(grep -E '^namespace:' "$yaml" | head -1 | awk '{print $2}')
+            [ -z "$ns" ] && continue
+            echo "Registering custom $ns/$type_name from repo"
+            rad resource-type create -f "$yaml"
+            rel=${type_dir#$GITHUB_WORKSPACE/}
+            rel=${rel%/}
+            if [ -d "${type_dir}recipes/kubernetes/terraform" ]; then
+              rad recipe register default \
+                --resource-type "$ns/$type_name" \
+                --template-kind terraform \
+                --template-path "git::https://github.com/${{ github.repository }}.git//${rel}/recipes/kubernetes/terraform?ref=${{ github.sha }}" \
+                --environment "${{ env.RADIUS_ENV }}"
+            elif [ -d "${type_dir}recipes/kubernetes/bicep" ]; then
+              rad recipe register default \
+                --resource-type "$ns/$type_name" \
+                --template-kind bicep \
+                --template-path "${type_dir}recipes/kubernetes/bicep" \
+                --environment "${{ env.RADIUS_ENV }}"
+            fi
+          done
+          echo "✅ Custom resource types and recipes registered"
 
       - name: Build Bicep extensions for custom resource types
         run: |
