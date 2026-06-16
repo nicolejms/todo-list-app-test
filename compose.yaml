@@ -12,6 +12,8 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: secret
       MYSQL_DB: todos
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
 
   mysql:
     image: mysql:8.0
@@ -21,5 +23,13 @@ services:
       MYSQL_ROOT_PASSWORD: secret
       MYSQL_DATABASE: todos
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 127.0.0.1:6379:6379
+    volumes:
+      - todo-redis-data:/data
+
 volumes:
   todo-mysql-data:
+  todo-redis-data:
