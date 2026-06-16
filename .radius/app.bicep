@@ -1,7 +1,4 @@
 extension radius
-extension radiusCompute
-extension radiusSecurity
-extension radiusData
 
 param environment string
 param application string

@@ -3,9 +3,6 @@
     "extensibility": true
   },
   "extensions": {
-    "radius": "br:ghcr.io/radius-project/radius/bicep/extensions/radius:latest",
-    "radiusCompute": "br:ghcr.io/radius-project/radius/bicep/extensions/radiusCompute:latest",
-    "radiusSecurity": "br:ghcr.io/radius-project/radius/bicep/extensions/radiusSecurity:latest",
-    "radiusData": "br:ghcr.io/radius-project/radius/bicep/extensions/radiusData:latest"
+    "radius": "br:biceptypes.azurecr.io/radius:latest"
   }
 }
