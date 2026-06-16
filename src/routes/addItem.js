@@ -1,4 +1,5 @@
 const db = require('../persistence');
+const cache = require('../cache');
 const {v4 : uuid} = require('uuid');
 
 module.exports = async (req, res) => {
@@ -9,5 +10,6 @@ module.exports = async (req, res) => {
     };
 
     await db.storeItem(item);
+    await cache.invalidate();
     res.send(item);
 };
