@@ -2,3 +2,5 @@ Started|/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourceGroups/gh-de
 Started|/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourceGroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b|'auditIfNotExists' Policy action.
 Accepted|/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourceGroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b|Create/Update MySQL Server
 Running|/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourcegroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b|List/Get MySQL Servers
+Running|/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourcegroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b|List/Get MySQL Servers
+Succeeded|/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourcegroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b|Create/Update MySQL Server
