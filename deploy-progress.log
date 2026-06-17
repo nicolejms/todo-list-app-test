@@ -5,3 +5,12 @@ Deploying template '.radius/app.bicep' for application 'dev' and environment '/p
 
 Deployment In Progress... 
 
+
+Deployment Complete
+
+Resources:
+    todo-app        Radius.Compute/containers
+    todo-mysql      Radius.Data/mySqlDatabases
+    todo-redis      Radius.Data/redisCaches
+    mysql-secret    Radius.Security/secrets
+■ Deployment finished at 2026-06-17T03:08:24Z (exit 0, 326s)

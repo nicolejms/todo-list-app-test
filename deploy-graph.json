@@ -1,0 +1,104 @@
+{
+  "resources": [
+    {
+      "connections": [
+        {
+          "direction": "Outbound",
+          "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Data/mySqlDatabases/todo-mysql"
+        },
+        {
+          "direction": "Outbound",
+          "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Data/redisCaches/todo-redis"
+        }
+      ],
+      "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Compute/containers/todo-app",
+      "name": "todo-app",
+      "outputResources": [
+        {
+          "id": "/planes/kubernetes/local/namespaces/dev-dev/providers/apps/Deployment/todo-app",
+          "name": "todo-app",
+          "type": "apps/Deployment"
+        },
+        {
+          "id": "/planes/kubernetes/local/namespaces/dev-dev/providers/core/Service/todo-app-app",
+          "name": "todo-app-app",
+          "type": "core/Service"
+        }
+      ],
+      "provisioningState": "Succeeded",
+      "type": "Radius.Compute/containers"
+    },
+    {
+      "connections": [
+        {
+          "direction": "Inbound",
+          "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Compute/containers/todo-app"
+        }
+      ],
+      "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Data/mySqlDatabases/todo-mysql",
+      "name": "todo-mysql",
+      "outputResources": [
+        {
+          "id": "/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourceGroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b",
+          "name": "mysql-3febdf86fb690b",
+          "type": "Microsoft.DBforMySQL/flexibleServers"
+        },
+        {
+          "id": "/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourceGroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b/databases/todos",
+          "name": "todos",
+          "type": "Microsoft.DBforMySQL/flexibleServers/databases"
+        },
+        {
+          "id": "/subscriptions/83d22c15-134b-4a0a-b10d-0a63710f9ab3/resourceGroups/gh-demo-test/providers/Microsoft.DBforMySQL/flexibleServers/mysql-3febdf86fb690b/firewallRules/AllowAzureServices",
+          "name": "AllowAzureServices",
+          "type": "Microsoft.DBforMySQL/flexibleServers/firewallRules"
+        },
+        {
+          "id": "/planes/kubernetes/local/namespaces/dev-dev/providers/core/Secret/mysql-secret",
+          "name": "mysql-secret",
+          "type": "core/Secret"
+        }
+      ],
+      "provisioningState": "Succeeded",
+      "type": "Radius.Data/mySqlDatabases"
+    },
+    {
+      "connections": [
+        {
+          "direction": "Inbound",
+          "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Compute/containers/todo-app"
+        }
+      ],
+      "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Data/redisCaches/todo-redis",
+      "name": "todo-redis",
+      "outputResources": [
+        {
+          "id": "/planes/kubernetes/local/namespaces/dev-dev/providers/apps/Deployment/todo-redis",
+          "name": "todo-redis",
+          "type": "apps/Deployment"
+        },
+        {
+          "id": "/planes/kubernetes/local/namespaces/dev-dev/providers/core/Service/todo-redis",
+          "name": "todo-redis",
+          "type": "core/Service"
+        }
+      ],
+      "provisioningState": "Succeeded",
+      "type": "Radius.Data/redisCaches"
+    },
+    {
+      "connections": [],
+      "id": "/planes/radius/local/resourcegroups/default/providers/Radius.Security/secrets/mysql-secret",
+      "name": "mysql-secret",
+      "outputResources": [
+        {
+          "id": "/planes/kubernetes/local/namespaces/dev-dev/providers/core/Secret/mysql-secret",
+          "name": "mysql-secret",
+          "type": "core/Secret"
+        }
+      ],
+      "provisioningState": "Succeeded",
+      "type": "Radius.Security/secrets"
+    }
+  ]
+}
